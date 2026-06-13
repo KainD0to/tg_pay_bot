@@ -1,7 +1,7 @@
 import base64
 import uuid
 import requests
-from tg_pay_bot.tg_pay_bot.config import YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY
+from config import YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY
 
 # ============================================================
 # КОНФИГУРАЦИЯ API
