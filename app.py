@@ -3,7 +3,6 @@ import logging
 from fastapi import FastAPI
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.client.session.aiohttp import AiohttpSession
 from config import BOT_TOKEN
 from payments import create_payment, check_payment
 
@@ -13,12 +12,8 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
-# Создаём сессию с прямым IP Telegram API
-session = AiohttpSession(
-    base="https://149.154.167.220"  # Прямой IP Telegram API (DC4)
-)
-
-bot = Bot(token=BOT_TOKEN, session=session)
+# Бот и диспетчер (без прокси!)
+bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 
@@ -27,7 +22,7 @@ dp = Dispatcher()
 @dp.message(Command("start"))
 async def start_command(message: types.Message):
     await message.answer(
-        "Привет! Я бот для тестирования платежей.\n"
+        "👋 Привет! Я бот для тестирования платежей.\n"
         "Напиши /buy чтобы купить тестовую услугу за 100 руб."
     )
 
@@ -43,17 +38,17 @@ async def buy_command(message: types.Message):
 
         keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
             [types.InlineKeyboardButton(
-                text="Оплатить 100₽",
+                text="💳 Оплатить 100₽",
                 url=payment_url
             )],
             [types.InlineKeyboardButton(
-                text="Проверить оплату",
+                text="🔄 Проверить оплату",
                 callback_data=f"check_{payment_id}"
             )]
         ])
 
         await message.answer(
-            "Счёт на оплату:\n"
+            "🧾 Счёт на оплату:\n"
             "Тестовая услуга — 100₽\n\n"
             "Нажмите кнопку «Оплатить» и введите тестовые данные карты.\n"
             "После оплаты нажмите «Проверить оплату»",
@@ -62,7 +57,7 @@ async def buy_command(message: types.Message):
 
     except Exception as e:
         logging.error(f"Ошибка создания платежа: {e}")
-        await message.answer("Не удалось создать платёж. Попробуйте позже.")
+        await message.answer("❌ Не удалось создать платёж. Попробуйте позже.")
 
 
 @dp.callback_query(lambda c: c.data.startswith('check_'))
@@ -73,18 +68,18 @@ async def check_payment_handler(callback: types.CallbackQuery):
 
     if status == 'succeeded':
         await callback.message.edit_text(
-            "Оплата прошла успешно!\n"
+            "✅ Оплата прошла успешно!\n"
             "Спасибо за покупку!",
             reply_markup=None
         )
     elif status == 'canceled':
         await callback.message.edit_text(
-            "Платёж отменён.",
+            "❌ Платёж отменён.",
             reply_markup=None
         )
     else:
         await callback.answer(
-            "Платёж ещё не получен. Попробуйте через несколько секунд.",
+            "⏳ Платёж ещё не получен. Попробуйте через несколько секунд.",
             show_alert=True
         )
 
@@ -92,7 +87,7 @@ async def check_payment_handler(callback: types.CallbackQuery):
 # ========== ЗАПУСК ==========
 
 async def start_bot():
-    logging.info("Запускаю бота через Long Polling (прямой IP)...")
+    logging.info("Запускаю бота через Long Polling...")
     try:
         await bot.delete_webhook(drop_pending_updates=True)
     except Exception as e:
@@ -106,7 +101,7 @@ app = FastAPI()
 
 @app.get("/")
 async def root():
-    return {"status": "Бот работает (direct IP mode)"}
+    return {"status": "Бот работает (polling mode)"}
 
 
 @app.on_event("startup")
