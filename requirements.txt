@@ -1,5 +1,6 @@
-aiogram
 fastapi
 uvicorn
+aiogram
 requests
 python-dotenv
+aiohttp-socks
