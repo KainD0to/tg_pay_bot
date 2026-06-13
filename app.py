@@ -5,6 +5,12 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from config import BOT_TOKEN
 from payments import create_payment, check_payment
+from aiogram.client.session.aiohttp import AiohttpSession
+
+# SOCKS5 прокси
+PROXY_URL = "socks5://91.121.87.97:45785"
+
+session = AiohttpSession(proxy=PROXY_URL)
 
 # Логирование
 logging.basicConfig(
@@ -13,7 +19,9 @@ logging.basicConfig(
 )
 
 # Бот и диспетчер
-bot = Bot(token=BOT_TOKEN)
+
+# Передаём сессию в Bot
+bot = Bot(token=BOT_TOKEN, session=session)
 dp = Dispatcher()
 
 
