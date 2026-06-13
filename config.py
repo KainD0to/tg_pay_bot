@@ -1,15 +1,14 @@
-# config.py
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID")
+YOOKASSA_SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY")
+PROXY_URL = os.getenv("PROXY_URL")  # ← Новое!
 
-# Тестовые ключи ЮKassa
-YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID")      # test_shop_...
-YOOKASSA_SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY") # test_...
-
+# Webhook (уже не используется, но оставь)
 WEBHOOK_HOST = "https://kaind0to-tg-pay-bot.hf.space"
 WEBHOOK_PATH = "/webhook"
 WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"

@@ -6,11 +6,9 @@ from aiogram.filters import Command
 from config import BOT_TOKEN
 from payments import create_payment, check_payment
 from aiogram.client.session.aiohttp import AiohttpSession
+from config import BOT_TOKEN, PROXY_URL
 
-# SOCKS5 прокси
-PROXY_URL = "http://aujbqhus:2kjls95510zd@38.154.203.95:5863"
-
-session = AiohttpSession(proxy=PROXY_URL)
+session = AiohttpSession(proxy=PROXY_URL) if PROXY_URL else None
 
 # Логирование
 logging.basicConfig(
@@ -21,7 +19,7 @@ logging.basicConfig(
 # Бот и диспетчер
 
 # Передаём сессию в Bot
-bot = Bot(token=BOT_TOKEN, session=session)
+bot = Bot(token=BOT_TOKEN, session=session) if session else Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 
@@ -115,3 +113,11 @@ async def root():
 async def on_startup():
     # Запускаем бота в фоне
     asyncio.create_task(start_bot())
+    
+@app.get("/test")
+async def test():
+    try:
+        me = await bot.get_me()
+        return {"ok": True, "bot": f"@{me.username}"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}

@@ -3,5 +3,3 @@ fastapi
 uvicorn
 requests
 python-dotenv
-httpx[socks]
-aiohttp-socks
