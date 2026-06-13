@@ -3,4 +3,3 @@ uvicorn
 aiogram
 requests
 python-dotenv
-aiohttp-socks

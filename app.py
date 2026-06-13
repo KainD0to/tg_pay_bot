@@ -3,12 +3,9 @@ import logging
 from fastapi import FastAPI
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
+from aiogram.client.session.aiohttp import AiohttpSession
 from config import BOT_TOKEN
 from payments import create_payment, check_payment
-from aiogram.client.session.aiohttp import AiohttpSession
-from config import BOT_TOKEN, PROXY_URL
-
-session = AiohttpSession(proxy=PROXY_URL) if PROXY_URL else None
 
 # Логирование
 logging.basicConfig(
@@ -16,10 +13,12 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
-# Бот и диспетчер
+# Создаём сессию с прямым IP Telegram API
+session = AiohttpSession(
+    base="https://149.154.167.220"  # Прямой IP Telegram API (DC4)
+)
 
-# Передаём сессию в Bot
-bot = Bot(token=BOT_TOKEN, session=session) if session else Bot(token=BOT_TOKEN)
+bot = Bot(token=BOT_TOKEN, session=session)
 dp = Dispatcher()
 
 
@@ -93,31 +92,23 @@ async def check_payment_handler(callback: types.CallbackQuery):
 # ========== ЗАПУСК ==========
 
 async def start_bot():
-    logging.info("Запускаю бота через Long Polling...")
-    # Удаляем webhook на всякий случай
-    await bot.delete_webhook(drop_pending_updates=True)
-    # Запускаем polling
+    logging.info("Запускаю бота через Long Polling (прямой IP)...")
+    try:
+        await bot.delete_webhook(drop_pending_updates=True)
+    except Exception as e:
+        logging.warning(f"Не удалось удалить webhook: {e}")
+    
     await dp.start_polling(bot)
 
 
-# FastAPI приложение (для Health Check)
 app = FastAPI()
 
 
 @app.get("/")
 async def root():
-    return {"status": "Бот работает (polling mode)"}
+    return {"status": "Бот работает (direct IP mode)"}
 
 
 @app.on_event("startup")
 async def on_startup():
-    # Запускаем бота в фоне
     asyncio.create_task(start_bot())
-    
-@app.get("/test")
-async def test():
-    try:
-        me = await bot.get_me()
-        return {"ok": True, "bot": f"@{me.username}"}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
