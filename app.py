@@ -1,7 +1,7 @@
 import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from tg_pay_bot.tg_pay_bot.config import BOT_TOKEN
+from config import BOT_TOKEN
 
 # Создаём объект бота - "клиент" для общения с API Telegram
 bot = Bot(token=BOT_TOKEN)
