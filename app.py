@@ -8,7 +8,7 @@ from payments import create_payment, check_payment
 from aiogram.client.session.aiohttp import AiohttpSession
 
 # SOCKS5 прокси
-PROXY_URL = "socks5://91.121.87.97:45785"
+PROXY_URL = "http://aujbqhus:2kjls95510zd@38.154.203.95:5863"
 
 session = AiohttpSession(proxy=PROXY_URL)
 
