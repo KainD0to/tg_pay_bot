@@ -10,7 +10,6 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID")      # test_shop_...
 YOOKASSA_SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY") # test_...
 
-# Webhook URL (для PythonAnywhere)
-WEBHOOK_HOST = "https://твой_username.pythonanywhere.com"
+WEBHOOK_HOST = "https://kaind0to-tg-pay-bot.hf.space"
 WEBHOOK_PATH = "/webhook"
 WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
