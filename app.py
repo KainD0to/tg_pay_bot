@@ -1,9 +1,10 @@
-import asyncio
 import logging
-from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Request
 from aiogram import Bot, Dispatcher, types
+from aiogram.types import Update
 from aiogram.filters import Command
-from config import BOT_TOKEN
+from config import BOT_TOKEN, WEBHOOK_URL
 from payments import create_payment, check_payment
 
 # Логирование
@@ -12,7 +13,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
-# Бот и диспетчер (без прокси!)
+# Бот и диспетчер
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
@@ -22,7 +23,7 @@ dp = Dispatcher()
 @dp.message(Command("start"))
 async def start_command(message: types.Message):
     await message.answer(
-        "👋 Привет! Я бот для тестирования платежей.\n"
+        "Привет! Я бот для тестирования платежей.\n"
         "Напиши /buy чтобы купить тестовую услугу за 100 руб."
     )
 
@@ -38,17 +39,17 @@ async def buy_command(message: types.Message):
 
         keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
             [types.InlineKeyboardButton(
-                text="💳 Оплатить 100₽",
+                text="Оплатить 100₽",
                 url=payment_url
             )],
             [types.InlineKeyboardButton(
-                text="🔄 Проверить оплату",
+                text="Проверить оплату",
                 callback_data=f"check_{payment_id}"
             )]
         ])
 
         await message.answer(
-            "🧾 Счёт на оплату:\n"
+            "Счёт на оплату:\n"
             "Тестовая услуга — 100₽\n\n"
             "Нажмите кнопку «Оплатить» и введите тестовые данные карты.\n"
             "После оплаты нажмите «Проверить оплату»",
@@ -57,7 +58,7 @@ async def buy_command(message: types.Message):
 
     except Exception as e:
         logging.error(f"Ошибка создания платежа: {e}")
-        await message.answer("❌ Не удалось создать платёж. Попробуйте позже.")
+        await message.answer("Не удалось создать платёж. Попробуйте позже.")
 
 
 @dp.callback_query(lambda c: c.data.startswith('check_'))
@@ -68,42 +69,53 @@ async def check_payment_handler(callback: types.CallbackQuery):
 
     if status == 'succeeded':
         await callback.message.edit_text(
-            "✅ Оплата прошла успешно!\n"
+            "Оплата прошла успешно!\n"
             "Спасибо за покупку!",
             reply_markup=None
         )
     elif status == 'canceled':
         await callback.message.edit_text(
-            "❌ Платёж отменён.",
+            "Платёж отменён.",
             reply_markup=None
         )
     else:
         await callback.answer(
-            "⏳ Платёж ещё не получен. Попробуйте через несколько секунд.",
+            "Платёж ещё не получен. Попробуйте через несколько секунд.",
             show_alert=True
         )
 
 
-# ========== ЗАПУСК ==========
+# ========== WEBHOOK ==========
 
-async def start_bot():
-    logging.info("Запускаю бота через Long Polling...")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logging.info("Устанавливаю webhook...")
+    await bot.set_webhook(
+        url=WEBHOOK_URL,
+        allowed_updates=dp.resolve_used_update_types()
+    )
+    logging.info(f"Webhook установлен: {WEBHOOK_URL}")
+    yield
+    logging.info("Удаляю webhook...")
+    await bot.delete_webhook()
+    await bot.session.close()
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+@app.post("/webhook")
+async def webhook(request: Request):
     try:
-        await bot.delete_webhook(drop_pending_updates=True)
+        json_data = await request.json()
+        update = Update.model_validate(json_data)
+        await dp.feed_update(bot, update)
+        return {"status": "ok"}
     except Exception as e:
-        logging.warning(f"Не удалось удалить webhook: {e}")
-    
-    await dp.start_polling(bot)
-
-
-app = FastAPI()
+        logging.error(f"Ошибка webhook: {e}")
+        return {"status": "error", "detail": str(e)}
 
 
 @app.get("/")
 async def root():
-    return {"status": "Бот работает (polling mode)"}
-
-
-@app.on_event("startup")
-async def on_startup():
-    asyncio.create_task(start_bot())
+    return {"status": "Бот работает!", "webhook": WEBHOOK_URL}
