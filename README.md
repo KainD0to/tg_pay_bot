@@ -1,11 +1,3 @@
----
-title: Tg Pay Bot
-emoji: 🚀
-colorFrom: green
-colorTo: gray
-sdk: docker
-pinned: false
-license: mit
----
+@portfolio_pay_bot
 
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+[render.com](https://tg-pay-bot.onrender.com)
