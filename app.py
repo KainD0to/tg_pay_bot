@@ -6,6 +6,7 @@ from aiogram.types import Update
 from aiogram.filters import Command
 from config import BOT_TOKEN, WEBHOOK_URL
 from payments import create_payment, check_payment
+from services import SERVICES, get_service
 
 # Логирование
 logging.basicConfig(
@@ -20,26 +21,54 @@ dp = Dispatcher()
 
 # ========== ОБРАБОТЧИКИ ==========
 
-@dp.message(Command("start"))
-async def start_command(message: types.Message):
-    await message.answer(
-        "Привет! Я бот для тестирования платежей.\n"
-        "Напиши /buy чтобы купить тестовую услугу за 100 руб."
-    )
-
-
-@dp.message(Command("buy"))
-async def buy_command(message: types.Message):
+@dp.message(Command("catalog"))
+async def show_catalog(message: types.Message):
+    try:
+        # Строим клавиатуру из всех сервисов
+        buttons = []
+        for service in SERVICES.values():
+            buttons.append([
+                types.InlineKeyboardButton(
+                    text=f"{service.description} — {service.price}₽",
+                    callback_data=f"buy_{service.name}"
+                )
+            ])
+        
+        keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+        
+        await message.answer(
+            "Каталог услуг:\n"
+            "Выберите подписку, чтобы перейти к оплате.",
+            reply_markup=keyboard
+        )
+        
+    except Exception as e:
+        logging.error(f"Ошибка каталога: {e}")
+        await message.answer("Не удалось загрузить каталог.")
+        
+@dp.callback_query(lambda c: c.data.startswith("buy_"))
+async def buy_service(callback: types.CallbackQuery):
+    # Парсим имя сервиса из callback_data
+    service_name = callback.data.split('_')[1]
+    
+    # Получаем объект сервиса
+    current_service = get_service(service_name)
+    
+    if current_service is None:
+        await callback.answer("Сервис не найден", show_alert=True)
+        return
+    
+    # Создаём платёж
     try:
         payment_id, payment_url = create_payment(
-            amount=100.0,
-            description="Тестовая подписка",
-            user_id=message.from_user.id
+            amount=current_service.price,
+            description=current_service.description,
+            user_id=callback.from_user.id
         )
-
+        
         keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
             [types.InlineKeyboardButton(
-                text="Оплатить 100₽",
+                text=f"Оплатить {current_service.price}₽",
                 url=payment_url
             )],
             [types.InlineKeyboardButton(
@@ -47,19 +76,17 @@ async def buy_command(message: types.Message):
                 callback_data=f"check_{payment_id}"
             )]
         ])
-
-        await message.answer(
-            "Счёт на оплату:\n"
-            "Тестовая услуга — 100₽\n\n"
-            "Нажмите кнопку «Оплатить» и введите тестовые данные карты.\n"
-            "После оплаты нажмите «Проверить оплату»",
+        
+        await callback.message.edit_text(
+            f"{current_service.description}\n"
+            f"Сумма: {current_service.price}₽\n\n"
+            "Нажмите «Оплатить» и введите тестовые данные карты.",
             reply_markup=keyboard
         )
-
+        
     except Exception as e:
         logging.error(f"Ошибка создания платежа: {e}")
-        await message.answer("Не удалось создать платёж. Попробуйте позже.")
-
+        await callback.answer("Не удалось создать платёж", show_alert=True)
 
 @dp.callback_query(lambda c: c.data.startswith('check_'))
 async def check_payment_handler(callback: types.CallbackQuery):
@@ -83,7 +110,6 @@ async def check_payment_handler(callback: types.CallbackQuery):
             "Платёж ещё не получен. Попробуйте через несколько секунд.",
             show_alert=True
         )
-
 
 # ========== WEBHOOK ==========
 
